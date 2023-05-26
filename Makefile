@@ -1,6 +1,14 @@
 PROJECT = murmerl3
 
-include erlang.mk
 
-test: tests
-	erl -noshell -pa ebin -eval 'eunit:test("ebin", [verbose])' -s init stop
+
+TEST_DEPS=proper
+
+BUILD_DEPS = elvis_mk
+dep_elvis_mk = git https://github.com/inaka/elvis.mk.git master
+
+DEP_PLUGINS = elvis_mk
+
+DIALYZER_OPTS += --src -r test
+
+include erlang.mk
