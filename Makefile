@@ -1,7 +1,5 @@
 PROJECT = murmerl3
 
-
-
 TEST_DEPS=proper
 
 BUILD_DEPS = elvis_mk

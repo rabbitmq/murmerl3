@@ -28,7 +28,9 @@ all() ->
     [{group, tests}].
 
 all_tests() -> [hash_32_basics,
-               is_right_size_prop].
+                java_basics,
+                java_comparison_prop,
+                is_right_size_prop].
 
 groups() ->
     [{tests, [], all_tests()}].
@@ -40,6 +42,17 @@ end_per_suite(_Config) ->
     ok.
 
 init_per_group(_Group, Config) ->
+    %% compile java program
+    Dir = ?config(data_dir, Config),
+    File = filename:join(Dir, "Murmur3.java"),
+    case filelib:is_file(File) of
+        true ->
+            ok;
+        false ->
+            Cmd = io_lib:format("javac ~s -s ~s", [File, Dir]),
+            Result = os:cmd(Cmd),
+            ct:pal("javac result ~p", [Result])
+    end,
     Config.
 
 end_per_group(_Group, _Config) ->
@@ -67,6 +80,30 @@ hash_32_basics(_Config) ->
     ?assertEqual(murmerl3:hash_32("01234"), 433070448),
     ok.
 
+java_basics(Config) ->
+    %% seed is hardcoded in java program
+    Seed = 104729,
+    Data = <<"0">>,
+    JavaHash = run_java(Data, Config),
+    Hash = murmerl3:hash_32(Data, Seed),
+    ?assertEqual(JavaHash, Hash),
+    ok.
+
+-type c() :: 48..57 | 65..90 | 97..122 .
+
+java_comparison_prop(Config) ->
+    Seed = 104729,
+    run_proper(
+      fun () ->
+              ?FORALL(B0, nonempty_list(c()),
+                      begin
+                          B = unicode:characters_to_binary(B0),
+                          % ct:pal("testing ~s", [B]),
+                          murmerl3:hash_32(B, Seed) =:= run_java(B, Config)
+                      end)
+      end, [], 100),
+
+    ok.
 
 is_right_size_prop(_Config) ->
     run_proper(
@@ -77,6 +114,11 @@ is_right_size_prop(_Config) ->
     ok.
 
 %% utilities
+run_java(Data, Config) ->
+    Dir = ?config(data_dir, Config),
+    Cmd = io_lib:format("java -cp ~s Murmur3 \"~s\"", [Dir, Data]),
+    list_to_integer(string:chomp(os:cmd(Cmd))).
+
 run_proper(Fun, Args, NumTests) ->
     ?assertEqual(
        true,

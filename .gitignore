@@ -25,3 +25,6 @@ osiris.d
 /bazel-*
 
 /.vscode/
+
+/test/murmerl3_SUITE_data/*.class
+*.DS_Store
